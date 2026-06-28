@@ -3,35 +3,167 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>html,body{margin:0;height:100%;background:#000}#v{width:100%;height:100vh;object-fit:contain}</style>
+<title>Vibe Player</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  #wrap{position:relative;width:100%;height:100vh}
+  #v{width:100%;height:100%;object-fit:contain;display:block;background:#000}
+
+  /* Quality selector overlay (góc trên phải) */
+  #q-ctrl{position:absolute;top:12px;right:12px;z-index:20;
+    font-family:-apple-system,"Segoe UI",Roboto,sans-serif}
+  #q-btn{display:flex;align-items:center;gap:5px;background:rgba(0,0,0,.55);color:#fff;
+    border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:6px 11px;
+    font-size:13px;cursor:pointer;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  #q-btn:hover{background:rgba(0,0,0,.78)}
+  #q-cur{opacity:.6;font-size:11px}
+  #q-menu{display:none;position:absolute;top:38px;right:0;background:rgba(20,20,25,.92);
+    border:1px solid rgba(255,255,255,.12);border-radius:6px;overflow:hidden;min-width:104px;
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  #q-menu button{display:block;width:100%;background:none;color:#e8e8e8;border:0;
+    padding:9px 14px;font-size:13px;text-align:right;cursor:pointer}
+  #q-menu button:hover{background:rgba(255,255,255,.1)}
+  #q-menu button.active{color:#E87722;font-weight:600}
+</style>
 </head>
 <body>
-<video id="v" controls playsinline preload="auto"></video>
+<div id="wrap">
+  <video id="v" controls playsinline preload="auto"></video>
+  <div id="q-ctrl" style="display:none">
+    <button id="q-btn"><span id="q-label">Auto</span><span id="q-cur"></span> &#9662;</button>
+    <div id="q-menu"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
 <script>
 (function () {
+  "use strict";
+
+  // ----- Tham số URL -----
   var p = new URLSearchParams(location.search);
   var id = p.get("id");
-  var cdn = (p.get("cdn") || "https://cdn.vibecreators.vn").replace(/\/+$/,"");
-  var poster = p.get("poster");
-  var token = p.get("token") || "";        // ?token=...&expires=... nếu bật Token Auth
-  if (token && token[0] !== "?") token = "?" + token;
+  var cdn = (p.get("cdn") || "https://cdn.vibecreators.vn").replace(/\/+$/, "");
+  var token = p.get("token") || "";              // nếu library bật Token Auth
+  if (token && token.charAt(0) !== "?") token = "?" + token;
 
-  var v = document.getElementById("v");
-  if (poster) v.poster = cdn + "/" + id + "/" + poster + token;
-  var src = cdn + "/" + id + "/playlist.m3u8" + token;
+  var DEFAULT_HEIGHT = 1080;                       // quality mặc định mong muốn
 
-  if (v.canPlayType("application/vnd.apple.mpegurl")) {
-    v.src = src;
-  } else if (window.Hls && Hls.isSupported()) {
-    var hls = new Hls({ enableWorker:true, capLevelToPlayerSize:true });
-    hls.loadSource(src); hls.attachMedia(v);
-    hls.on(Hls.Events.ERROR, function(_, d){
-      if (d.fatal) { if (d.type===Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
-                     else if (d.type===Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
-                     else hls.destroy(); }
+  var v      = document.getElementById("v");
+  var qCtrl  = document.getElementById("q-ctrl");
+  var qBtn   = document.getElementById("q-btn");
+  var qLabel = document.getElementById("q-label");
+  var qCur   = document.getElementById("q-cur");
+  var qMenu  = document.getElementById("q-menu");
+
+  if (!id) {
+    document.body.innerHTML =
+      "<p style='color:#fff;font-family:sans-serif;padding:20px'>Thi\u1EBFu tham s\u1ED1 <code>id</code> trong URL.</p>";
+    return;
+  }
+
+  // ----- Thumbnail luôn tự build từ id -----
+  v.poster = cdn + "/" + id + "/thumbnail.jpg" + token;
+
+  // ----- LUÔN nạp master; KHÔNG tự build URL variant -----
+  var master = cdn + "/" + id + "/playlist.m3u8" + token;
+
+  var hls = null;
+
+  function setLabel(text, currentHeight) {
+    qLabel.textContent = text;
+    qCur.textContent = currentHeight ? " " + currentHeight + "p" : "";
+  }
+  function markActive(levelIndex) {
+    [].forEach.call(qMenu.children, function (b) {
+      b.classList.toggle("active", parseInt(b.getAttribute("data-level"), 10) === levelIndex);
     });
   }
+
+  // ----- Dựng menu quality ĐỘNG từ các level Bunny thực có -----
+  function buildMenu(levels) {
+    qMenu.innerHTML = "";
+
+    function addItem(label, levelIndex) {
+      var b = document.createElement("button");
+      b.textContent = label;
+      b.setAttribute("data-level", levelIndex);
+      b.addEventListener("click", function () {
+        qMenu.style.display = "none";
+        hls.currentLevel = levelIndex;             // -1 = Auto (ABR), >=0 = cố định
+        if (levelIndex === -1) setLabel("Auto", levels[hls.currentLevel] && levels[hls.currentLevel].height);
+        else setLabel(levels[levelIndex].height + "p");
+        markActive(levelIndex);
+      });
+      qMenu.appendChild(b);
+    }
+
+    addItem("Auto", -1);
+    // sắp xếp theo chiều cao giảm dần để hiển thị, giữ index gốc
+    levels.map(function (l, i) { return { h: l.height, i: i }; })
+          .sort(function (a, b) { return b.h - a.h; })
+          .forEach(function (it) { addItem(it.h + "p", it.i); });
+
+    qCtrl.style.display = "block";
+  }
+
+  // ----- Chọn level mặc định: đúng 1080p nếu có, không thì cao nhất -----
+  function pickDefault(levels) {
+    var def = -1, bestI = 0, bestH = -1;
+    levels.forEach(function (l, i) {
+      if (l.height === DEFAULT_HEIGHT) def = i;
+      if (l.height > bestH) { bestH = l.height; bestI = i; }
+    });
+    return def !== -1 ? def : bestI;
+  }
+
+  if (window.Hls && Hls.isSupported()) {
+    // ----- Đường hls.js: có điều khiển quality -----
+    hls = new Hls({ enableWorker: true });
+    hls.loadSource(master);
+    hls.attachMedia(v);
+
+    hls.on(Hls.Events.MANIFEST_PARSED, function (_, data) {
+      var levels = data.levels || hls.levels;
+      buildMenu(levels);
+      var defIdx = pickDefault(levels);
+      hls.currentLevel = defIdx;                   // mặc định 1080p (cố định)
+      setLabel(levels[defIdx].height + "p");
+      markActive(defIdx);
+    });
+
+    // khi đang ở Auto, cập nhật độ phân giải đang phát
+    hls.on(Hls.Events.LEVEL_SWITCHED, function (_, data) {
+      if (hls.autoLevelEnabled && hls.levels[data.level]) {
+        setLabel("Auto", hls.levels[data.level].height);
+        markActive(-1);
+      }
+    });
+
+    hls.on(Hls.Events.ERROR, function (_, data) {
+      if (!data.fatal) return;
+      console.error("[player] HLS fatal:", data.type, data.details, master);
+      if (data.type === Hls.ErrorTypes.NETWORK_ERROR) hls.startLoad();
+      else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+      else hls.destroy();
+    });
+
+  } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
+    // ----- Safari / iOS: HLS native, tự ABR. Không điều khiển level được → ẩn menu -----
+    v.src = master;
+    qCtrl.style.display = "none";
+  } else {
+    console.error("[player] Tr\u00ECnh duy\u1EC7t kh\u00F4ng h\u1ED7 tr\u1EE3 HLS");
+  }
+
+  // ----- Đóng/mở menu -----
+  qBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    qMenu.style.display = (qMenu.style.display === "block") ? "none" : "block";
+  });
+  document.addEventListener("click", function (e) {
+    if (!qCtrl.contains(e.target)) qMenu.style.display = "none";
+  });
 })();
 </script>
 </body>

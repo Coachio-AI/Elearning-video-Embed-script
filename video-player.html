@@ -5,11 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vibe Player</title>
 <style>
-  :root{
-    --accent:#E87722;          /* cam Coachio */
-    --navy:#1B3A6B;            /* navy Coachio */
-    --ctrl-h:44px;
-  }
+  :root{ --accent:#E87722; --navy:#1B3A6B; }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:#000;overflow:hidden;
     font-family:-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -18,29 +14,28 @@
   .vp video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
   .vp.hidden{cursor:none}
 
-  /* ---- Big play (giữa) ---- */
+  /* Big play */
   .vp-bigplay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
     width:74px;height:74px;border-radius:50%;background:rgba(27,58,107,.82);border:0;color:#fff;
     cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:9;
     transition:transform .15s ease,background .15s ease}
   .vp-bigplay:hover{background:rgba(232,119,34,.94);transform:translate(-50%,-50%) scale(1.06)}
-  .vp-bigplay svg{width:34px;height:34px;fill:#fff;margin-left:3px}
+  .vp-bigplay svg{width:34px;height:34px;margin-left:3px}
+  .vp.playing .vp-bigplay{display:none}
 
-  /* ---- Spinner ---- */
+  /* Spinner */
   .vp-spinner{position:absolute;top:50%;left:50%;width:50px;height:50px;margin:-25px 0 0 -25px;
     border:4px solid rgba(255,255,255,.25);border-top-color:var(--accent);border-radius:50%;
     animation:vp-spin .8s linear infinite;display:none;z-index:8}
   @keyframes vp-spin{to{transform:rotate(360deg)}}
 
-  /* ---- Controls ---- */
+  /* Controls */
   .vp-controls{position:absolute;left:0;right:0;bottom:0;padding:0 10px 4px;z-index:10;
     background:linear-gradient(transparent,rgba(0,0,0,.78));opacity:1;transition:opacity .25s ease}
   .vp.hidden .vp-controls{opacity:0}
 
-  /* progress */
   .vp-progress{position:relative;height:16px;display:flex;align-items:center;cursor:pointer;margin:0 4px}
-  .vp-track{position:relative;width:100%;height:4px;background:rgba(255,255,255,.3);
-    border-radius:2px;transition:height .1s ease}
+  .vp-track{position:relative;width:100%;height:4px;background:rgba(255,255,255,.3);border-radius:2px;transition:height .1s ease}
   .vp-progress:hover .vp-track{height:6px}
   .vp-buffered,.vp-played{position:absolute;left:0;top:0;height:100%;border-radius:2px;width:0}
   .vp-buffered{background:rgba(255,255,255,.45)}
@@ -49,42 +44,60 @@
     border-radius:50%;transform:translate(-50%,-50%) scale(0);transition:transform .1s ease;pointer-events:none}
   .vp-progress:hover .vp-thumb{transform:translate(-50%,-50%) scale(1)}
 
-  /* button row */
-  .vp-bar{display:flex;align-items:center;gap:4px;height:var(--ctrl-h)}
+  .vp-bar{display:flex;align-items:center;gap:4px;height:44px}
   .vp-left,.vp-right{display:flex;align-items:center;gap:2px}
   .vp-right{margin-left:auto}
   .vp-btn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;
     background:none;border:0;color:#fff;cursor:pointer;border-radius:50%;padding:0;flex:none}
   .vp-btn:hover{background:rgba(255,255,255,.16)}
   .vp-btn:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
-  .vp-btn svg{width:22px;height:22px;fill:currentColor}
-  .vp-time{color:#fff;font-size:13px;font-variant-numeric:tabular-nums;margin-left:6px;white-space:nowrap}
+  .vp-btn span{display:inline-flex;align-items:center;justify-content:center}
+  .vp-btn svg{width:22px;height:22px}
+  .vp-time{font-size:13px;font-variant-numeric:tabular-nums;margin-left:6px;white-space:nowrap}
 
-  /* volume */
   .vp-vol{display:flex;align-items:center}
-  .vp-vol input{width:0;opacity:0;transition:width .2s ease,opacity .2s ease;accent-color:var(--accent);
-    cursor:pointer;height:4px}
+  .vp-vol input{width:0;opacity:0;transition:width .2s ease,opacity .2s ease;accent-color:var(--accent);cursor:pointer;height:4px}
   .vp-vol:hover input,.vp-vol input:focus-visible{width:72px;opacity:1;margin:0 6px 0 2px}
 
-  /* settings popover */
-  .vp-settings{position:relative}
-  .vp-popover{position:absolute;bottom:48px;right:0;min-width:158px;background:rgba(22,22,27,.97);
-    border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:6px;display:none;
-    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 8px 26px rgba(0,0,0,.45)}
-  .vp-popover.open{display:block}
-  .vp-popover-head{color:#8a93a6;font-size:11px;text-transform:uppercase;letter-spacing:.6px;
-    padding:6px 10px 5px}
-  .vp-q{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;color:#e8e8e8;
-    font-size:13px;text-align:left;padding:8px 10px;border-radius:6px;cursor:pointer}
-  .vp-q:hover{background:rgba(255,255,255,.1)}
-  .vp-q:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
-  .vp-q .vp-check{width:13px;color:var(--accent);opacity:0;font-size:12px;flex:none}
-  .vp-q.active{color:#fff;font-weight:600}
-  .vp-q.active .vp-check{opacity:1}
+  /* Icon toggle states */
+  .vp .i-pause,.vp .i-volx,.vp .i-min{display:none}
+  .vp.playing .i-play{display:none}
+  .vp.playing .i-pause{display:inline-flex}
+  .vp.muted .i-vol{display:none}
+  .vp.muted .i-volx{display:inline-flex}
+  .vp.fs .i-max{display:none}
+  .vp.fs .i-min{display:inline-flex}
 
-  @media (prefers-reduced-motion: reduce){
-    *{transition:none!important;animation-duration:.01ms!important}
-  }
+  /* Settings popover (2 cấp) */
+  .vp-settings{position:relative}
+  .vp-popover{position:absolute;bottom:48px;right:0;min-width:212px;background:rgba(22,22,27,.97);
+    border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:6px;display:none;
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 8px 26px rgba(0,0,0,.45);
+    color:#e8e8e8}
+  .vp-popover.open{display:block}
+  .vp-panel[hidden]{display:none}
+
+  .vp-row{display:flex;align-items:center;justify-content:space-between;gap:18px;width:100%;
+    background:none;border:0;color:#e8e8e8;font-size:13px;padding:10px 12px;border-radius:6px;cursor:pointer}
+  .vp-row:hover{background:rgba(255,255,255,.1)}
+  .vp-row-r{display:flex;align-items:center;gap:5px;color:#9aa3b2}
+  .vp-row-r svg{width:16px;height:16px}
+
+  .vp-back{display:flex;align-items:center;gap:7px;width:100%;background:none;border:0;
+    border-bottom:1px solid rgba(255,255,255,.1);color:#fff;font-size:13px;font-weight:500;
+    padding:8px 12px 11px;cursor:pointer;margin-bottom:4px}
+  .vp-back:hover{color:var(--accent)}
+  .vp-back svg{width:18px;height:18px}
+
+  .vp-opt{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;color:#e8e8e8;
+    font-size:13px;text-align:left;padding:8px 12px;border-radius:6px;cursor:pointer}
+  .vp-opt:hover{background:rgba(255,255,255,.1)}
+  .vp-opt .ck{width:15px;flex:none;display:inline-flex;color:var(--accent);opacity:0}
+  .vp-opt .ck svg{width:15px;height:15px}
+  .vp-opt.active{color:#fff;font-weight:500}
+  .vp-opt.active .ck{opacity:1}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation-duration:.01ms!important} }
 </style>
 </head>
 <body>
@@ -92,7 +105,7 @@
   <video id="v" playsinline></video>
 
   <button class="vp-bigplay" id="bigplay" aria-label="Phát" type="button">
-    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <span class="i-play"><i data-lucide="play"></i></span>
   </button>
   <div class="vp-spinner" id="spinner"></div>
 
@@ -107,9 +120,15 @@
 
     <div class="vp-bar">
       <div class="vp-left">
-        <button class="vp-btn" id="play" aria-label="Phát/Tạm dừng" type="button"></button>
+        <button class="vp-btn" id="play" aria-label="Phát/Tạm dừng" type="button">
+          <span class="i-play"><i data-lucide="play"></i></span>
+          <span class="i-pause"><i data-lucide="pause"></i></span>
+        </button>
         <div class="vp-vol">
-          <button class="vp-btn" id="mute" aria-label="Tắt/Bật tiếng" type="button"></button>
+          <button class="vp-btn" id="mute" aria-label="Tắt/Bật tiếng" type="button">
+            <span class="i-vol"><i data-lucide="volume-2"></i></span>
+            <span class="i-volx"><i data-lucide="volume-x"></i></span>
+          </button>
           <input type="range" id="vol" min="0" max="1" step="0.05" value="1" aria-label="Âm lượng">
         </div>
         <span class="vp-time"><span id="cur">0:00</span> / <span id="dur">0:00</span></span>
@@ -117,92 +136,125 @@
 
       <div class="vp-right">
         <div class="vp-settings">
-          <button class="vp-btn" id="gear" aria-label="Cài đặt chất lượng" type="button">
-            <svg viewBox="0 0 24 24"><path d="M19.4 13c.04-.3.06-.6.06-1s-.02-.7-.07-1l2.1-1.6a.5.5 0 0 0 .13-.64l-2-3.46a.5.5 0 0 0-.61-.22l-2.49 1a7.3 7.3 0 0 0-1.69-.98l-.38-2.65A.49.49 0 0 0 14 2h-4a.49.49 0 0 0-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1a.5.5 0 0 0-.61.22l-2 3.46a.5.5 0 0 0 .13.64L2.6 11c-.05.3-.07.6-.07 1s.02.7.07 1l-2.1 1.6a.5.5 0 0 0-.13.64l2 3.46c.14.24.4.32.61.22l2.49-1c.52.39 1.08.73 1.69.98l.38 2.65c.04.24.25.42.49.42h4c.24 0 .45-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.21.1.47.02.61-.22l2-3.46a.5.5 0 0 0-.13-.64L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
-          </button>
+          <button class="vp-btn" id="gear" aria-label="Cài đặt" type="button"><i data-lucide="settings"></i></button>
           <div class="vp-popover" id="popover">
-            <div class="vp-popover-head">Chất lượng</div>
-            <div id="qlist"></div>
+            <div class="vp-panel" id="panel-main">
+              <button class="vp-row" id="open-quality" type="button">
+                <span>Chất lượng</span>
+                <span class="vp-row-r"><span id="q-value">Tự động</span><i data-lucide="chevron-right"></i></span>
+              </button>
+              <button class="vp-row" id="open-speed" type="button">
+                <span>Tốc độ phát</span>
+                <span class="vp-row-r"><span id="s-value">Bình thường</span><i data-lucide="chevron-right"></i></span>
+              </button>
+            </div>
+            <div class="vp-panel" id="panel-quality" hidden>
+              <button class="vp-back" data-back type="button"><i data-lucide="chevron-left"></i><span>Chất lượng</span></button>
+              <div id="qlist"></div>
+            </div>
+            <div class="vp-panel" id="panel-speed" hidden>
+              <button class="vp-back" data-back type="button"><i data-lucide="chevron-left"></i><span>Tốc độ phát</span></button>
+              <div id="slist"></div>
+            </div>
           </div>
         </div>
-        <button class="vp-btn" id="fs" aria-label="Toàn màn hình" type="button"></button>
+        <button class="vp-btn" id="fs" aria-label="Toàn màn hình" type="button">
+          <span class="i-max"><i data-lucide="maximize"></i></span>
+          <span class="i-min"><i data-lucide="minimize"></i></span>
+        </button>
       </div>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 <script>
 (function () {
   "use strict";
 
-  // ===== Icon =====
-  var IC = {
-    play:  '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
-    pause: '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>',
-    volOn: '<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm13.5 2A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.2v2.06a7 7 0 0 1 0 13.48v2.06a9 9 0 0 0 0-17.6z"/></svg>',
-    volOff:'<svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10H3zm18.3 2 1.7-1.7-1.41-1.41L20.59 10 18 7.41 16.59 8.83 19.17 11.41l-2.58 2.58L18 15.41l2.59-2.58 2.59 2.58L24.59 14z" transform="translate(-2 -1.4)"/></svg>',
-    fsIn:  '<svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
-    fsOut: '<svg viewBox="0 0 24 24"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>'
-  };
-
-  // ===== Tham số URL =====
   var p = new URLSearchParams(location.search);
   var id = p.get("id");
   var cdn = (p.get("cdn") || "https://cdn.vibecreators.vn").replace(/\/+$/, "");
   var token = p.get("token") || "";
   if (token && token.charAt(0) !== "?") token = "?" + token;
   var DEFAULT_HEIGHT = 1080;
+  var SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   var $ = function (s) { return document.getElementById(s); };
   var player=$("player"), v=$("v"), bigplay=$("bigplay"), spinner=$("spinner"),
-      controls=$("controls"), progress=$("progress"), buffered=$("buffered"),
-      played=$("played"), thumb=$("thumb"), playBtn=$("play"), muteBtn=$("mute"),
-      vol=$("vol"), cur=$("cur"), dur=$("dur"), gear=$("gear"), popover=$("popover"),
-      qlist=$("qlist"), fsBtn=$("fs"), settings=gear.parentNode;
+      progress=$("progress"), buffered=$("buffered"), played=$("played"), thumb=$("thumb"),
+      cur=$("cur"), dur=$("dur"), vol=$("vol"), gear=$("gear"), popover=$("popover"),
+      fsBtn=$("fs"), settings=gear.parentNode,
+      panelMain=$("panel-main"), panelQ=$("panel-quality"), panelS=$("panel-speed"),
+      qlist=$("qlist"), slist=$("slist"), qValue=$("q-value"), sValue=$("s-value");
+
+  function icons(){ if (window.lucide) lucide.createIcons(); }
 
   if (!id) { document.body.innerHTML="<p style='color:#fff;padding:20px'>Thi\u1EBFu tham s\u1ED1 <code>id</code>.</p>"; return; }
 
   v.poster = cdn + "/" + id + "/thumbnail.jpg" + token;
   var master = cdn + "/" + id + "/playlist.m3u8" + token;
 
-  playBtn.innerHTML = IC.play; muteBtn.innerHTML = IC.volOn; fsBtn.innerHTML = IC.fsIn;
-
-  // ===== Tiện ích =====
-  function fmt(s){ s=Math.floor(s||0); var m=Math.floor(s/60)%60, h=Math.floor(s/3600), sec=s%60;
+  function fmt(s){ s=Math.floor(s||0); var m=Math.floor(s/60)%60,h=Math.floor(s/3600),sec=s%60;
     var mm=(h>0?String(m).padStart(2,"0"):m); return (h>0?h+":":"")+mm+":"+String(sec).padStart(2,"0"); }
-  function pad(n){ return n<10?"0"+n:""+n; } // (giữ phòng khi cần)
 
-  // ===== HLS / quality =====
-  var hls=null;
-  function setQLabel(){} // label hiện qua active item; không cần text riêng
+  // ===== Panel navigation =====
+  function showPanel(which){
+    panelMain.hidden = which!=="main";
+    panelQ.hidden    = which!=="quality";
+    panelS.hidden    = which!=="speed";
+  }
+  $("open-quality").addEventListener("click", function(){ showPanel("quality"); });
+  $("open-speed").addEventListener("click", function(){ showPanel("speed"); });
+  [].forEach.call(document.querySelectorAll("[data-back]"), function(b){
+    b.addEventListener("click", function(){ showPanel("main"); });
+  });
+
+  // ===== Speed list =====
+  function speedLabel(r){ return r===1 ? "Bình thường" : (""+r); }
+  (function buildSpeeds(){
+    SPEEDS.forEach(function(r){
+      var b=document.createElement("button");
+      b.className="vp-opt"+(r===1?" active":""); b.type="button"; b.setAttribute("data-rate", r);
+      b.innerHTML='<span class="ck"><i data-lucide="check"></i></span><span>'+speedLabel(r)+'</span>';
+      b.addEventListener("click", function(){
+        v.playbackRate=r;
+        [].forEach.call(slist.children,function(x){x.classList.remove("active");});
+        b.classList.add("active"); sValue.textContent=speedLabel(r); showPanel("main");
+      });
+      slist.appendChild(b);
+    });
+  })();
+
+  // ===== Quality (HLS levels) =====
   function markQ(idx){ [].forEach.call(qlist.children,function(b){
     b.classList.toggle("active", parseInt(b.getAttribute("data-level"),10)===idx); }); }
-
   function buildQuality(levels){
     qlist.innerHTML="";
     function add(label, idx){
       var b=document.createElement("button");
-      b.className="vp-q"; b.type="button"; b.setAttribute("data-level", idx);
-      b.innerHTML='<span class="vp-check">\u2713</span><span>'+label+'</span>';
+      b.className="vp-opt"; b.type="button"; b.setAttribute("data-level", idx);
+      b.innerHTML='<span class="ck"><i data-lucide="check"></i></span><span>'+label+'</span>';
       b.addEventListener("click", function(){
-        hls.currentLevel = idx;            // -1 = Auto (ABR), >=0 = cố định
-        popover.classList.remove("open"); markQ(idx);
+        hls.currentLevel=idx; markQ(idx);
+        qValue.textContent=label; showPanel("main");
       });
       qlist.appendChild(b);
     }
     add("Tự động", -1);
-    levels.map(function(l,i){return{h:l.height,i:i};})
-          .sort(function(a,b){return b.h-a.h;})
+    levels.map(function(l,i){return{h:l.height,i:i};}).sort(function(a,b){return b.h-a.h;})
           .forEach(function(it){ add(it.h+"p", it.i); });
+    icons();
   }
   function pickDefault(levels){
-    var def=-1, bestI=0, bestH=-1;
+    var def=-1,bestI=0,bestH=-1;
     levels.forEach(function(l,i){ if(l.height===DEFAULT_HEIGHT) def=i;
       if(l.height>bestH){bestH=l.height;bestI=i;} });
     return def!==-1?def:bestI;
   }
 
+  var hls=null;
   if (window.Hls && Hls.isSupported()) {
     hls = new Hls({ enableWorker:true });
     hls.loadSource(master); hls.attachMedia(v);
@@ -210,10 +262,10 @@
       var levels = data.levels || hls.levels;
       buildQuality(levels);
       var d = pickDefault(levels);
-      hls.currentLevel = d; markQ(d);
+      hls.currentLevel = d; markQ(d); qValue.textContent = levels[d].height+"p";
     });
-    hls.on(Hls.Events.LEVEL_SWITCHED, function(_, data){
-      if (hls.autoLevelEnabled) markQ(-1);
+    hls.on(Hls.Events.LEVEL_SWITCHED, function(){
+      if (hls.autoLevelEnabled){ markQ(-1); qValue.textContent="Tự động"; }
     });
     hls.on(Hls.Events.ERROR, function(_, data){
       if(!data.fatal) return;
@@ -223,19 +275,17 @@
       else hls.destroy();
     });
   } else if (v.canPlayType("application/vnd.apple.mpegurl")) {
-    // iOS Safari: native HLS. Dùng controls gốc (iOS không cho điều khiển level + âm lượng qua JS).
     v.src = master; v.setAttribute("controls","");
-    controls.style.display="none"; bigplay.style.display="none";
-    return;
+    $("controls").style.display="none"; bigplay.style.display="none"; icons(); return;
   } else {
     document.body.innerHTML="<p style='color:#fff;padding:20px'>Tr\u00ECnh duy\u1EC7t kh\u00F4ng h\u1ED7 tr\u1EE3 HLS.</p>"; return;
   }
 
   // ===== Play / Pause =====
   function toggle(){ if(v.paused) v.play(); else v.pause(); }
-  v.addEventListener("play", function(){ playBtn.innerHTML=IC.pause; bigplay.style.display="none"; show(); });
-  v.addEventListener("pause", function(){ playBtn.innerHTML=IC.play; bigplay.style.display=""; show(true); });
-  playBtn.addEventListener("click", toggle);
+  v.addEventListener("play", function(){ player.classList.add("playing"); show(); });
+  v.addEventListener("pause", function(){ player.classList.remove("playing"); show(true); });
+  $("play").addEventListener("click", toggle);
   bigplay.addEventListener("click", toggle);
   v.addEventListener("click", toggle);
 
@@ -249,46 +299,38 @@
   v.addEventListener("timeupdate", function(){
     if(drag) return;
     var pct=(v.currentTime/v.duration)||0;
-    played.style.width=(pct*100)+"%"; thumb.style.left=(pct*100)+"%";
-    cur.textContent=fmt(v.currentTime);
+    played.style.width=(pct*100)+"%"; thumb.style.left=(pct*100)+"%"; cur.textContent=fmt(v.currentTime);
   });
   v.addEventListener("progress", function(){
     if(v.buffered.length){ var e=v.buffered.end(v.buffered.length-1);
       buffered.style.width=(((e/v.duration)*100)||0)+"%"; }
   });
-
-  // seek (pointer = chuột + cảm ứng)
   var drag=false, dpct=0;
-  function pctFromX(x){ var r=progress.getBoundingClientRect();
-    return Math.min(1,Math.max(0,(x-r.left)/r.width)); }
+  function pctFromX(x){ var r=progress.getBoundingClientRect(); return Math.min(1,Math.max(0,(x-r.left)/r.width)); }
   function paint(pc){ played.style.width=(pc*100)+"%"; thumb.style.left=(pc*100)+"%"; cur.textContent=fmt(pc*v.duration); }
-  progress.addEventListener("pointerdown", function(e){
-    drag=true; try{progress.setPointerCapture(e.pointerId);}catch(_){}
+  progress.addEventListener("pointerdown", function(e){ drag=true; try{progress.setPointerCapture(e.pointerId);}catch(_){}
     dpct=pctFromX(e.clientX); paint(dpct); });
   window.addEventListener("pointermove", function(e){ if(drag){ dpct=pctFromX(e.clientX); paint(dpct); } });
   window.addEventListener("pointerup", function(){ if(drag){ drag=false; if(v.duration) v.currentTime=dpct*v.duration; } });
 
   // ===== Volume =====
-  muteBtn.addEventListener("click", function(){ v.muted=!v.muted; });
+  $("mute").addEventListener("click", function(){ v.muted=!v.muted; });
   vol.addEventListener("input", function(){ v.volume=parseFloat(vol.value); v.muted=(v.volume===0); });
   v.addEventListener("volumechange", function(){
     vol.value = v.muted?0:v.volume;
-    muteBtn.innerHTML = (v.muted||v.volume===0)?IC.volOff:IC.volOn;
+    player.classList.toggle("muted", v.muted||v.volume===0);
   });
 
-  // ===== Fullscreen (target WRAPPER → control vẫn hiện) =====
-  function toggleFs(){
-    if(document.fullscreenElement) document.exitFullscreen();
-    else if(player.requestFullscreen) player.requestFullscreen();
-  }
+  // ===== Fullscreen (wrapper) =====
+  function toggleFs(){ if(document.fullscreenElement) document.exitFullscreen();
+    else if(player.requestFullscreen) player.requestFullscreen(); }
   fsBtn.addEventListener("click", toggleFs);
-  document.addEventListener("fullscreenchange", function(){
-    fsBtn.innerHTML = document.fullscreenElement?IC.fsOut:IC.fsIn;
-  });
   v.addEventListener("dblclick", toggleFs);
+  document.addEventListener("fullscreenchange", function(){ player.classList.toggle("fs", !!document.fullscreenElement); });
 
-  // ===== Popover settings =====
-  gear.addEventListener("click", function(e){ e.stopPropagation(); popover.classList.toggle("open"); });
+  // ===== Popover =====
+  gear.addEventListener("click", function(e){ e.stopPropagation();
+    var open = popover.classList.toggle("open"); if(open) showPanel("main"); });
   document.addEventListener("click", function(e){ if(!settings.contains(e.target)) popover.classList.remove("open"); });
 
   // ===== Tự ẩn controls =====
@@ -311,7 +353,8 @@
     }
   });
 
-  show(true); // hiện controls lúc đầu (đang pause)
+  icons();        // render icon tĩnh ban đầu
+  show(true);
 })();
 </script>
 </body>
